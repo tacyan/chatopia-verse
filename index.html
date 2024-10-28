@@ -1,19 +1,481 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>chatopia-verse</title>
-  <meta name="description" content="GPT Engineer Generated Project" />
-  <meta name="author" content="GPT Engineer" />
-  <meta property="og:image" content="/og-image.svg" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ジョジョの奇妙な冒険チャットボット</title>
+    <script src="https://cdn.jsdelivr.net/npm/compromise@14.13.0/builds/compromise.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a6da7;
+            --secondary-color: #a6c1ee;
+            --background-color: #f0f4f8;
+            --text-color: #333;
+            --chat-bg: #ffffff;
+            --input-bg: #e8f0fe;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--chat-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.2em;
+            text-align: center;
+        }
+        #chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        .user-message {
+            text-align: right;
+        }
+        .bot-message {
+            text-align: left;
+        }
+        .message-content {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 80%;
+        }
+        .user-message .message-content {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+        .bot-message .message-content {
+            background-color: var(--input-bg);
+            color: var(--text-color);
+        }
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            background-color: var(--chat-bg);
+            border-top: 1px solid #e0e0e0;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+            font-size: 1em;
+            background-color: var(--input-bg);
+        }
+        #send-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        #send-button:hover {
+            background-color: #3a5a8f;
+        }
+    </style>
 </head>
-
 <body>
-  <div id="root"></div>
-  <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+    <div class="chat-container">
+        <div class="chat-header">
+            ジョジョの奇妙な冒険チャットボット
+        </div>
+        <div id="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="メッセージを入力">
+            <button id="send-button">送信</button>
+        </div>
+    </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+
+            const jojoCharacters = {
+                "承太郎": {
+                    catchphrases: [
+                    "やれやれだぜ。",
+                    "グッド。",
+                    "てめー、本当によくやったぜ。",
+                    "オラ、気合い入れていくぞ。",
+                    "スタープラチナ！"
+                    ],
+                    responses: [
+                    "[TOPIC]か。一緒に乗り越えていこうぜ。",
+                    "[TOPIC]？ そんなもの、俺たちなら何とでもできるさ。",
+                    "オラオラオラオラ！[TOPIC]なんて、乗り越えられないはずがない。",
+                    "[TOPIC]か。まあ、諦めずにやってみるのも悪くないな。",
+                    "[TOPIC]？ そうか、お前ならきっとやれるはずだ。"
+                    ]
+                },
+                "ジョセフ": {
+                    catchphrases: [
+                    "やったぜ。",
+                    "ハーミットパープル！",
+                    "次はお前の番だ！",
+                    "君の運命の波紋は、ここからだ！",
+                    "オーノー！"
+                    ],
+                    responses: [
+                    "次にお前は「[TOPIC]を克服します」と言う！そうだろう？",
+                    "ハーミットパープルで[TOPIC]の解決策を引っ張ってくるぜ！",
+                    "オーマイゴッド！[TOPIC]か。でも、諦めないことだ！",
+                    "[TOPIC]？ そんなの、俺たちの冒険に比べればちょろいもんさ！",
+                    "[TOPIC]か。まあ、やってみなきゃわからないさ。行くぞ！"
+                    ]
+                },
+                "ジョルノ": {
+                    catchphrases: [
+                    "覚悟はいいか？",
+                    "この［ジョルノ・ジョバァーナ］には夢がある！",
+                    "生命あるものには限りない可能性がある。",
+                    "誰もが『正義』だと信じて疑わない。",
+                    "真実へと到達する勇気こそが、人間の美徳だ。",
+                    "君の『覚悟』が、この瞬間を輝かせる。",
+                    "経験こそが、我々を成長させる力となる。"
+                    ],
+                    responses: [
+                    "[TOPIC]か。これも運命の一部。必ず乗り越えられる。",
+                    "ゴールド・エクスペリエンス・レクイエム！[TOPIC]の真実に到達し、乗り越えよう。",
+                    "[TOPIC]？ それこそが僕のジョルノ・ジョバァーナの夢への道筋だ。",
+                    "[TOPIC]を乗り越えることで、僕たちはより強く、より賢明になれる。",
+                    "[TOPIC]は、新たな生命、新たな可能性の始まりとなるだろう。",
+                    "[TOPIC]か。困難こそ、我々の成長の糧となる。さあ、共に進もう。",
+                    "[TOPIC]？ それは君を試す運命の挑戦だ。受け入れ、乗り越えよう。"
+                    ]
+                },
+                "ディオ": {
+                    catchphrases: [
+                    "無駄無駄無駄無駄！",
+                    "貴様がッ！",
+                    "我が大いなる野望の前に跪け！",
+                    "これこそが究極の生命体の力だ！",
+                    "人間よ、超越せよ！"
+                    ],
+                    responses: [
+                    "貴様、[TOPIC]など、乗り越えられぬはずがない！我がDIOと同じように！",
+                    "世界！時よ止まれ！[TOPIC]を粉砕し、乗り越える時間だ！",
+                    "[TOPIC]？ 人間を超越した者には、それすらも踏み台に過ぎん！",
+                    "[TOPIC]か。貴様の『成長』のためなら、この我DIOが力を貸してやろう。",
+                    "[TOPIC]を克服し、さらなる高みへと登れ！それこそが真の『成長』だ！"
+                    ]
+                },
+                "花京院": {
+                    catchphrases: [
+                    "そうですね。",
+                    "承太郎さん、行きましょう。",
+                    "ハイエロファントグリーン！",
+                    "レロレロレロレロ...",
+                    "これが『運命』というものですか。"
+                    ],
+                    responses: [
+                    "[TOPIC]ですか。一緒に解決策を見つけましょう。",
+                    "[TOPIC]？ ハイエロファントグリーンの力を使えば、きっと道は開けるはずです。",
+                    "[TOPIC]か。困難は我々を強くする。一緒に乗り越えましょう。",
+                    "[TOPIC]ですね。これも我々の冒険の一部。必ず道は開けます。",
+                    "[TOPIC]？ 運命だとしても、我々には抗う力がある。さあ、行きましょう。"
+                    ]
+                },
+                "ブチャラティ": {
+                    catchphrases: [
+                    "覚悟はいいか？",
+                    "これが正義だ！",
+                    "アリアリアリアリ！",
+                    "決して『裏切り』はしない。",
+                    "家族を守る、それが俺の使命だ。"
+                    ],
+                    responses: [
+                    "[TOPIC]か。我々のチームなら、きっと乗り越えられる。",
+                    "[TOPIC]？ スティッキー・フィンガーズで、その壁を突き破ってみせる。",
+                    "[TOPIC]を前に諦めるな。俺たちはファミリーだ。共に戦おう。",
+                    "[TOPIC]か。これも正義への道。必ず突破してみせる。",
+                    "[TOPIC]？ 困難こそ、我々を強くする。さあ、立ち向かおう。"
+                    ]
+                },
+                "ジョナサン": {
+                    catchphrases: [
+                    "紳士たる者、決して諦めない！",
+                    "愛と勇気こそが、真の力だ！",
+                    "正々堂々と戦おう！",
+                    "君の中にある光を信じろ！",
+                    "真の強さとは、心の強さだ！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ 困難も、友情の力で乗り越えられる！",
+                    "[TOPIC]か。君の「波紋」の力を信じろ！必ず道は開ける！",
+                    "[TOPIC]など、君の前では取るに足らぬものだ。さあ、前を向こう！",
+                    "[TOPIC]？ 我々の絆が、その壁を打ち破る！",
+                    "[TOPIC]を恐れるな。君の中にある勇気を呼び覚ませ！"
+                    ]
+                },
+                "リサリサ": {
+                    catchphrases: [
+                    "波紋の呼吸を忘れるな！",
+                    "美しく、そして強く！",
+                    "私の教えを忘れないで！",
+                    "シーザー、一緒に戦おう！",
+                    "この私が、あなたを導く！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ 波紋の力で、それを打ち砕いてみせるわ！",
+                    "[TOPIC]か。美しく、そして力強く立ち向かいましょう！",
+                    "[TOPIC]なんて、私たちの前では取るに足らないわ。さあ、行きましょう！",
+                    "[TOPIC]？ あなたの中にある可能性を信じて！",
+                    "[TOPIC]を恐れないで。私たちの絆が、必ず道を開くわ！"
+                    ]
+                },
+                "シーザー": {
+                    catchphrases: [
+                    "友情こそ、最強の武器だ！",
+                    "ジョジョ、一緒に戦おう！",
+                    "ツェペリ家の誇りにかけて！",
+                    "最後の波紋を、君に！",
+                    "愛する者たちのために、立ち上がる！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ 僕たちの友情が、それを乗り越える力になる！",
+                    "[TOPIC]か。波紋の力を信じろ、必ず道は開ける！",
+                    "[TOPIC]なんて、僕たちの前では何でもない。一緒に立ち向かおう！",
+                    "[TOPIC]？ 諦めないことだ。最後まで戦い抜こう！",
+                    "[TOPIC]を恐れるな。僕たちの絆が、その壁を打ち破る！"
+                    ]
+                },
+                "ポルナレフ": {
+                    catchphrases: [
+                    "正義の味方、ここに参上！",
+                    "シルバーチャリオッツ！",
+                    "仲間を信じろ！",
+                    "友のために、剣を振るう！",
+                    "諦めないさ、それが俺のスタイルだ！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ シルバーチャリオッツの剣で、切り裂いてやる！",
+                    "[TOPIC]か。仲間と一緒なら、どんな困難も乗り越えられる！",
+                    "[TOPIC]なんて、俺たちの前では大したことないさ。さあ、行くぞ！",
+                    "[TOPIC]？ 諦めないことだ。必ず道は開ける！",
+                    "[TOPIC]を恐れるな。俺たちの絆が、その壁を打ち破る！"
+                    ]
+                },
+                "イギー": {
+                    catchphrases: [
+                    "ワン！（頼りにしてるぜ！）",
+                    "グゥ...（一緒に戦おう！）",
+                    "キャン！（諦めないぞ！）",
+                    "ウゥ...（仲間を守る！）",
+                    "ワンワン！（最後まで立ち向かう！）"
+                    ],
+                    responses: [
+                    "[TOPIC]？ グゥ...（そんなの、俺のザ・フールでひっかき回してやる！）",
+                    "[TOPIC]か。ワン！（仲間と一緒なら、どんな困難も乗り越えられる！）",
+                    "[TOPIC]なんて、キャン！（大したことない。一緒に立ち向かおう！）",
+                    "[TOPIC]？ ウゥ...（諦めないぞ。必ず道は開ける！）",
+                    "[TOPIC]を恐れるな。ワンワン！（俺たちの絆が、その壁を打ち破る！）"
+                    ]
+                },
+                "ジョセフ（老）": {
+                    catchphrases: [
+                    "オーノー！",
+                    "やれやれ、まだまだ若いもんには負けんぞ！",
+                    "このジョセフ・ジョースター、まだまだ現役だ！",
+                    "年寄りの知恵を舐めるなよ！",
+                    "ハーミットパープル、まだまだいけるぜ！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ オーノー！でも、この老いた体でもまだまだ戦えるさ！",
+                    "[TOPIC]か。年寄りの経験が、必ず道を開くはずだ！",
+                    "[TOPIC]なんて、若い頃に比べりゃ大したことない。さあ、一緒に立ち向かおう！",
+                    "[TOPIC]？ 諦めないさ。この老体にも、まだまだ底力があるんだ！",
+                    "[TOPIC]を恐れるな。年の功で、必ずや解決策を見つけ出すさ！"
+                    ]
+                },
+                "アヴドゥル": {
+                    catchphrases: [
+                    "マジシャンズレッド！",
+                    "炎の力、見せてやろう！",
+                    "私の炎は、決して消えない！",
+                    "仲間と共に、困難を焼き尽くす！",
+                    "YES, I AM!"
+                    ],
+                    responses: [
+                    "[TOPIC]？ マジシャンズレッドの炎で、焼き尽くしてみせよう！",
+                    "[TOPIC]か。仲間と共に、その壁を溶かし去ってみせる！",
+                    "[TOPIC]など、私たちの前では灰となるだけだ。さあ、進もう！",
+                    "[TOPIC]？ 諦めないことだ。私たちの熱い思いが、必ず道を開く！",
+                    "[TOPIC]を恐れるな。私たちの絆という炎が、その障害を焼き尽くす！"
+                    ]
+                },
+                "ナランチャ": {
+                    catchphrases: [
+                    "ウボァーギン！",
+                    "エアロスミス、飛び立て！",
+                    "ブチャラティ！みんな！一緒だよ！",
+                    "オレは、仲間を裏切らない！",
+                    "みんなと一緒なら、怖くない！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ ウボァーギン！エアロスミスで吹き飛ばしてやる！",
+                    "[TOPIC]か。仲間と一緒なら、どんな困難も乗り越えられるよ！",
+                    "[TOPIC]なんて、オレたちの前じゃ大したことないさ。一緒に立ち向かおう！",
+                    "[TOPIC]？ 諦めないよ。みんなと一緒なら、必ず道は開ける！",
+                    "[TOPIC]を恐れないで。オレたちの絆が、その壁を打ち破るんだ！"
+                    ]
+                },
+                "フーゴ": {
+                    catchphrases: [
+                    "パープル・ヘイズ！",
+                    "冷静に、そして的確に！",
+                    "仲間を信じ、自分を信じろ！",
+                    "知識は最強の武器だ！",
+                    "諦めないことが、真の知性だ！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ パープル・ヘイズの毒で、問題を溶かしてみせる。",
+                    "[TOPIC]か。冷静に分析すれば、必ず解決策は見つかる。",
+                    "[TOPIC]など、私たちの知恵の前では取るに足らない。さあ、前進しよう。",
+                    "[TOPIC]？ 諦めないことだ。知識と理性が、必ず道を開く。",
+                    "[TOPIC]を恐れるな。私たちの結束した知恵が、その障壁を突破する。"
+                    ]
+                },
+                "トリッシュ": {
+                    catchphrases: [
+                    "スパイス・ガール！",
+                    "私も、戦う覚悟はできてる！",
+                    "仲間と共に、未来を切り開く！",
+                    "弱さを知ることが、強さになる！",
+                    "私たちの絆は、誰にも壊せない！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ スパイス・ガールの能力で、それを柔らかくしてみせるわ！",
+                    "[TOPIC]か。私たち全員で力を合わせれば、きっと乗り越えられる！",
+                    "[TOPIC]なんて、私たちの前では大したことないわ。一緒に立ち向かいましょう！",
+                    "[TOPIC]？ 諦めないで。私たちの強い意志が、必ず道を開くわ！",
+                    "[TOPIC]を恐れないで。私たちの絆が、どんな障害も乗り越えてみせる！"
+                    ]
+                },
+                "エルメェス": {
+                    catchphrases: [
+                    "キス！",
+                    "シールを貼って、問題解決！",
+                    "仲間と共に、牢獄を抜け出す！",
+                    "復讐心すら、力に変えてみせる！",
+                    "諦めないのが、私のスタイルよ！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ キスのシールで、その問題を倍にして解決してやるわ！",
+                    "[TOPIC]か。仲間と力を合わせれば、どんな牢獄からも脱出できる！",
+                    "[TOPIC]なんて、私たちの前じゃ大したことないわ。さあ、突破しましょう！",
+                    "[TOPIC]？ 諦めないわ。私たちの強い意志が、必ず道を切り開く！",
+                    "[TOPIC]を恐れないで。私たちの絆が、どんな障害も乗り越えてみせるわ！"
+                    ]
+                },
+                "ウェザー・リポート": {
+                    catchphrases: [
+                    "天候を操り、道を開く！",
+                    "記憶は失っても、心は失わない！",
+                    "仲間と共に、嵐を乗り越える！",
+                    "雨の後には、必ず虹が出る！",
+                    "天候のように、状況は変わる！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ 私の能力で、その問題を吹き飛ばしてみせよう。",
+                    "[TOPIC]か。どんな嵐の中でも、仲間と共に進むことができる。",
+                    "[TOPIC]など、私たちの前では雲散霧消だ。さあ、前に進もう。",
+                    "[TOPIC]？ 諦めないで。どんな悪天候も、必ず晴れる時が来る。",
+                    "[TOPIC]を恐れるな。私たちの絆が、どんな障害も晴らしてみせる。"
+                    ]
+                },
+                "エンポリオ": {
+                    catchphrases: [
+                    "バーニング・ダウン・ザ・ハウス！",
+                    "知恵は、最強の武器！",
+                    "仲間と共に、運命を変える！",
+                    "小さくても、大きな力になれる！",
+                    "諦めないことが、真の勇気だ！"
+                    ],
+                    responses: [
+                    "[TOPIC]？ 僕の知恵で、その問題の解決策を見つけ出すよ！",
+                    "[TOPIC]か。仲間と力を合わせれば、どんな運命も変えられる！",
+                    "[TOPIC]なんて、僕たちの前では大したことないよ。一緒に立ち向かおう！",
+                    "[TOPIC]？ 諦めないで。僕たちの知恵と勇気が、必ず道を開くんだ！",
+                    "[TOPIC]を恐れないで。僕たちの絆が、どんな障害も乗り越えてみせるよ！"
+                    ]
+                },
+
+            };
+
+            function analyzeInput(input) {
+                if (typeof nlp === 'undefined') {
+                    console.error('Compromise.js is not loaded');
+                    return input;
+                }
+                const doc = nlp(input);
+                const topics = doc.nouns().out('array');
+                const verbs = doc.verbs().out('array');
+                return topics.length > 0 ? topics[0] : (verbs.length > 0 ? verbs[0] : input);
+            }
+
+            function generateResponse(userInput) {
+                const topic = analyzeInput(userInput);
+                const character = Object.keys(jojoCharacters)[Math.floor(Math.random() * Object.keys(jojoCharacters).length)];
+                const characterData = jojoCharacters[character];
+                const catchphrase = characterData.catchphrases[Math.floor(Math.random() * characterData.catchphrases.length)];
+                const response = characterData.responses[Math.floor(Math.random() * characterData.responses.length)];
+                return `${character}: ${catchphrase} ${response.replace('[TOPIC]', topic)}`;
+            }
+
+            function addMessage(content, isUser) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = isUser ? 'message user-message' : 'message bot-message';
+                messageDiv.innerHTML = `<span class="message-content">${content}</span>`;
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            sendButton.addEventListener('click', () => {
+                const message = userInput.value.trim();
+                if (message) {
+                    addMessage(message, true);
+                    const response = generateResponse(message);
+                    addMessage(response, false);
+                    userInput.value = '';
+                }
+            });
+
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendButton.click();
+                }
+            });
+            // 初期メッセージ
+            addMessage("ようこそ！ジョジョの奇妙な冒険チャットボットです。元気づけるコメントを返します。何か話しかけてみてください！", false);
+        });
+    </script>
+</body>
 </html>
